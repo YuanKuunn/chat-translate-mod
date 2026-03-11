@@ -5,7 +5,7 @@
   "name": "Chat Translate Mod",
   "description": "Translates outgoing and incoming Minecraft chat with OpenAI or DeepL, with live candidate previews before sending.",
   "authors": [
-    "Codex"
+    "YuanKuunn"
   ],
   "contact": {
     "sources": "https://github.com/YuanKuunn/chat-translate-mod"
