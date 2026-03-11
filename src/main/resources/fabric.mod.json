@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "chattranslate",
+  "version": "${version}",
+  "name": "Chat Translate Mod",
+  "description": "Translates outgoing Minecraft chat with OpenAI and previews candidates before sending.",
+  "authors": [
+    "Codex"
+  ],
+  "contact": {
+    "sources": "https://example.invalid/chat-translate-mod"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.yuankuunn.chattranslate.ChatTranslateClient"
+    ],
+    "modmenu": [
+      "dev.yuankuunn.chattranslate.config.ChatTranslateModMenu"
+    ]
+  },
+  "mixins": [
+    "chattranslate.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.2",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": ">=0.139.4",
+    "cloth-config": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}
