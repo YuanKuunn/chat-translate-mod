@@ -7,7 +7,8 @@ import net.minecraft.util.StringUtil;
 public final class ClientTranslationConfig {
     public boolean enabled = true;
     public boolean incomingEnabled = true;
-    public TranslationBackend backend = TranslationBackend.OPENAI;
+    public TranslationBackend outgoingBackend = TranslationBackend.OPENAI;
+    public TranslationBackend incomingBackend = TranslationBackend.OPENAI;
     public String openAiApiKey = "";
     public String deepLApiKey = "";
     public String sourceLanguage = "ja";
@@ -23,11 +24,15 @@ public final class ClientTranslationConfig {
     @Deprecated
     public String model = "";
 
+    @Deprecated
+    public TranslationBackend backend = null;
+
     public ClientTranslationConfig copy() {
         ClientTranslationConfig copy = new ClientTranslationConfig();
         copy.enabled = this.enabled;
         copy.incomingEnabled = this.incomingEnabled;
-        copy.backend = this.backend;
+        copy.outgoingBackend = this.outgoingBackend;
+        copy.incomingBackend = this.incomingBackend;
         copy.openAiApiKey = this.openAiApiKey;
         copy.deepLApiKey = this.deepLApiKey;
         copy.sourceLanguage = this.sourceLanguage;
@@ -38,11 +43,21 @@ public final class ClientTranslationConfig {
         copy.debounceMillis = this.debounceMillis;
         copy.apiKey = this.apiKey;
         copy.model = this.model;
+        copy.backend = this.backend;
         return copy;
     }
 
     public ClientTranslationConfig sanitize() {
-        this.backend = this.backend == null ? TranslationBackend.OPENAI : this.backend;
+        if (this.backend != null) {
+            if (this.outgoingBackend == null) {
+                this.outgoingBackend = this.backend;
+            }
+            if (this.incomingBackend == null) {
+                this.incomingBackend = this.backend;
+            }
+        }
+        this.outgoingBackend = this.outgoingBackend == null ? TranslationBackend.OPENAI : this.outgoingBackend;
+        this.incomingBackend = this.incomingBackend == null ? this.outgoingBackend : this.incomingBackend;
         if (StringUtil.isBlank(this.openAiApiKey) && !StringUtil.isBlank(this.apiKey)) {
             this.openAiApiKey = this.apiKey;
         }
@@ -58,6 +73,7 @@ public final class ClientTranslationConfig {
         this.debounceMillis = Math.clamp(this.debounceMillis, 150, 3_000);
         this.apiKey = "";
         this.model = "";
+        this.backend = null;
         return this;
     }
 

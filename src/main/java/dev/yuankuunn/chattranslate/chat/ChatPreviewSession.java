@@ -21,6 +21,10 @@ import net.minecraft.util.FormattedCharSequence;
 import org.lwjgl.glfw.GLFW;
 
 public final class ChatPreviewSession {
+    private static final int LEFT_OUTER_MARGIN = 4;
+    private static final int RIGHT_OUTER_MARGIN = 10;
+    private static final int INNER_HORIZONTAL_PADDING = 4;
+    private static final int SELECTED_HORIZONTAL_PADDING = 2;
     private static final int BOX_COLOR = 0xC0101010;
     private static final int TITLE_COLOR = 0xFFE5E5E5;
     private static final int BODY_COLOR = 0xFFFFFFFF;
@@ -131,18 +135,23 @@ public final class ChatPreviewSession {
             return false;
         }
 
-        int candidateIndex = switch (keyCode) {
-            case GLFW.GLFW_KEY_1, GLFW.GLFW_KEY_KP_1 -> 0;
-            case GLFW.GLFW_KEY_2, GLFW.GLFW_KEY_KP_2 -> 1;
-            case GLFW.GLFW_KEY_3, GLFW.GLFW_KEY_KP_3 -> 2;
-            default -> -1;
-        };
-        if (candidateIndex < 0 || candidateIndex >= this.state.candidates().size()) {
-            return false;
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_UP -> {
+                this.moveSelection(-1);
+                return true;
+            }
+            case GLFW.GLFW_KEY_DOWN -> {
+                this.moveSelection(1);
+                return true;
+            }
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
+                this.applyCandidate(this.selectedCandidateIndex, applySelectedText);
+                return true;
+            }
+            default -> {
+                return false;
+            }
         }
-
-        this.applyCandidate(candidateIndex, applySelectedText);
-        return true;
     }
 
     public synchronized boolean handleMouseClicked(double mouseX, double mouseY, int button, Consumer<String> applySelectedText) {
@@ -159,6 +168,19 @@ public final class ChatPreviewSession {
         return false;
     }
 
+    public synchronized void handleMouseMoved(double mouseX, double mouseY) {
+        if (this.state.status() != ChatPreviewState.Status.READY) {
+            return;
+        }
+
+        for (CandidateHitBox hitBox : this.candidateHitBoxes) {
+            if (hitBox.contains(mouseX, mouseY)) {
+                this.selectedCandidateIndex = hitBox.candidateIndex();
+                return;
+            }
+        }
+    }
+
     public void render(GuiGraphics guiGraphics, Font font, EditBox inputBox) {
         ChatPreviewState currentState = this.state;
         if (currentState.status() == ChatPreviewState.Status.IDLE) {
@@ -166,9 +188,9 @@ public final class ChatPreviewSession {
             return;
         }
 
-        int maxWidth = Math.max(120, inputBox.getWidth());
-        int boxX = inputBox.getX();
-        int contentWidth = maxWidth - 8;
+        int maxWidth = Math.max(120, inputBox.getWidth() - LEFT_OUTER_MARGIN - RIGHT_OUTER_MARGIN);
+        int boxX = inputBox.getX() + LEFT_OUTER_MARGIN;
+        int contentWidth = maxWidth - (INNER_HORIZONTAL_PADDING * 2);
         int boxHeight;
 
         List<CandidateRenderEntry> renderedCandidates = List.of();
@@ -183,7 +205,7 @@ public final class ChatPreviewSession {
 
         int boxY = Math.max(4, inputBox.getY() - boxHeight - 4);
         guiGraphics.fill(boxX, boxY, boxX + maxWidth, boxY + boxHeight, BOX_COLOR);
-        guiGraphics.drawString(font, this.titleFor(currentState), boxX + 4, boxY + 4, TITLE_COLOR, false);
+        guiGraphics.drawString(font, this.titleFor(currentState), boxX + INNER_HORIZONTAL_PADDING, boxY + 4, TITLE_COLOR, false);
 
         int y = boxY + 16;
         if (currentState.status() == ChatPreviewState.Status.READY) {
@@ -191,11 +213,17 @@ public final class ChatPreviewSession {
             for (CandidateRenderEntry entry : renderedCandidates) {
                 int top = y - 1;
                 if (entry.index() == this.selectedCandidateIndex) {
-                    guiGraphics.fill(boxX + 2, top, boxX + maxWidth - 2, top + entry.height(), SELECTED_BACKGROUND_COLOR);
+                    guiGraphics.fill(
+                        boxX + SELECTED_HORIZONTAL_PADDING,
+                        top,
+                        boxX + maxWidth - SELECTED_HORIZONTAL_PADDING,
+                        top + entry.height(),
+                        SELECTED_BACKGROUND_COLOR
+                    );
                 }
                 int textColor = entry.index() == this.selectedCandidateIndex ? SELECTED_TEXT_COLOR : BODY_COLOR;
                 for (FormattedCharSequence line : entry.lines()) {
-                    guiGraphics.drawString(font, line, boxX + 4, y, textColor, false);
+                    guiGraphics.drawString(font, line, boxX + INNER_HORIZONTAL_PADDING, y, textColor, false);
                     y += 10;
                 }
                 hitBoxes.add(new CandidateHitBox(entry.index(), boxX, boxX + maxWidth, top, top + entry.height()));
@@ -205,7 +233,7 @@ public final class ChatPreviewSession {
             this.candidateHitBoxes = List.of();
             int color = currentState.status() == ChatPreviewState.Status.ERROR ? ERROR_COLOR : BODY_COLOR;
             for (FormattedCharSequence line : plainLines) {
-                guiGraphics.drawString(font, line, boxX + 4, y, color, false);
+                guiGraphics.drawString(font, line, boxX + INNER_HORIZONTAL_PADDING, y, color, false);
                 y += 10;
             }
         }
@@ -260,6 +288,13 @@ public final class ChatPreviewSession {
         this.cancelScheduledPreview();
         this.state = ChatPreviewState.idle();
         applySelectedText.accept(candidate.text());
+    }
+
+    private synchronized void moveSelection(int offset) {
+        if (this.state.status() != ChatPreviewState.Status.READY || this.state.candidates().isEmpty()) {
+            return;
+        }
+        this.selectedCandidateIndex = Math.floorMod(this.selectedCandidateIndex + offset, this.state.candidates().size());
     }
 
     private synchronized void cancelScheduledPreview() {

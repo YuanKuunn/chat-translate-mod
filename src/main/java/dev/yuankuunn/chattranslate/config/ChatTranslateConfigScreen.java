@@ -29,10 +29,15 @@ public final class ChatTranslateConfigScreen {
             .setDefaultValue(true)
             .setSaveConsumer(value -> workingCopy.incomingEnabled = value)
             .build());
-        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("chattranslate.config.backend"), TranslationBackend.class, workingCopy.backend)
+        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("chattranslate.config.outgoing_backend"), TranslationBackend.class, workingCopy.outgoingBackend)
             .setDefaultValue(TranslationBackend.OPENAI)
             .setEnumNameProvider(value -> Component.translatable("chattranslate.config.backend." + value.name().toLowerCase()))
-            .setSaveConsumer(value -> workingCopy.backend = value)
+            .setSaveConsumer(value -> workingCopy.outgoingBackend = value)
+            .build());
+        category.addEntry(entryBuilder.startEnumSelector(Component.translatable("chattranslate.config.incoming_backend"), TranslationBackend.class, workingCopy.incomingBackend)
+            .setDefaultValue(TranslationBackend.OPENAI)
+            .setEnumNameProvider(value -> Component.translatable("chattranslate.config.backend." + value.name().toLowerCase()))
+            .setSaveConsumer(value -> workingCopy.incomingBackend = value)
             .build());
         category.addEntry(entryBuilder.startStrField(Component.translatable("chattranslate.config.openai_api_key"), workingCopy.openAiApiKey)
             .setDefaultValue("")

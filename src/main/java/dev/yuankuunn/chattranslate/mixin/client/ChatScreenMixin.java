@@ -51,6 +51,7 @@ public abstract class ChatScreenMixin extends Screen {
     @Inject(method = "render", at = @At("TAIL"))
     private void chattranslate$render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo callbackInfo) {
         if (this.chattranslate$previewSession != null && this.input != null) {
+            this.chattranslate$previewSession.handleMouseMoved(mouseX, mouseY);
             this.chattranslate$previewSession.render(guiGraphics, this.font, this.input);
         }
     }

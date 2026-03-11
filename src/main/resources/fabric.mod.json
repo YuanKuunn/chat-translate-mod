@@ -3,12 +3,12 @@
   "id": "chattranslate",
   "version": "${version}",
   "name": "Chat Translate Mod",
-  "description": "Translates outgoing Minecraft chat with OpenAI and previews candidates before sending.",
+  "description": "Translates outgoing and incoming Minecraft chat with OpenAI or DeepL, with live candidate previews before sending.",
   "authors": [
     "Codex"
   ],
   "contact": {
-    "sources": "https://example.invalid/chat-translate-mod"
+    "sources": "https://github.com/YuanKuunn/chat-translate-mod"
   },
   "license": "MIT",
   "environment": "client",

@@ -24,6 +24,8 @@ class ClientTranslationConfigTest {
     @Test
     void sanitizeMigratesLegacyOpenAiFields() {
         ClientTranslationConfig config = new ClientTranslationConfig();
+        config.outgoingBackend = null;
+        config.incomingBackend = null;
         config.backend = TranslationBackend.OPENAI;
         config.openAiApiKey = "";
         config.openAiModel = "";
@@ -34,6 +36,8 @@ class ClientTranslationConfigTest {
 
         assertEquals("legacy-key", config.openAiApiKey);
         assertEquals("legacy-model", config.openAiModel);
+        assertEquals(TranslationBackend.OPENAI, config.outgoingBackend);
+        assertEquals(TranslationBackend.OPENAI, config.incomingBackend);
         assertEquals("", config.apiKey);
         assertEquals("", config.model);
     }

@@ -33,31 +33,14 @@ public final class TranslationService {
     }
 
     public Optional<Component> getConfigurationError() {
-        ClientTranslationConfig config = this.snapshot();
-        if (!this.providers.containsKey(config.backend)) {
-            return Optional.of(Component.translatable("chattranslate.preview.missing_backend"));
-        }
-
-        return switch (config.backend) {
-            case OPENAI -> {
-                if (StringUtil.isBlank(config.openAiApiKey)) {
-                    yield Optional.of(Component.translatable("chattranslate.preview.missing_openai_api_key"));
-                }
-                if (StringUtil.isBlank(config.openAiModel)) {
-                    yield Optional.of(Component.translatable("chattranslate.preview.missing_openai_model"));
-                }
-                yield Optional.empty();
-            }
-            case DEEPL -> StringUtil.isBlank(config.deepLApiKey)
-                ? Optional.of(Component.translatable("chattranslate.preview.missing_deepl_api_key"))
-                : Optional.empty();
-        };
+        return this.getConfigurationError(this.snapshot().outgoingBackend);
     }
 
     public CompletableFuture<TranslationResult> requestOutgoingCandidates(String sourceText) {
         ClientTranslationConfig config = this.snapshot();
         return this.request(
             config,
+            config.outgoingBackend,
             sourceText,
             config.sourceLanguage,
             config.targetLanguage,
@@ -72,6 +55,7 @@ public final class TranslationService {
         }
         return this.request(
             config,
+            config.incomingBackend,
             sourceText,
             "",
             config.incomingTargetLanguage,
@@ -81,6 +65,7 @@ public final class TranslationService {
 
     private CompletableFuture<TranslationResult> request(
         ClientTranslationConfig config,
+        TranslationBackend backend,
         String sourceText,
         String sourceLanguage,
         String targetLanguage,
@@ -90,12 +75,12 @@ public final class TranslationService {
             return CompletableFuture.failedFuture(new TranslationException("Translation is disabled."));
         }
 
-        Optional<Component> configurationError = this.getConfigurationError();
+        Optional<Component> configurationError = this.getConfigurationError(backend);
         if (configurationError.isPresent()) {
             return CompletableFuture.failedFuture(new TranslationException(configurationError.get().getString()));
         }
 
-        TranslationProvider provider = this.providers.get(config.backend);
+        TranslationProvider provider = this.providers.get(backend);
         if (provider == null) {
             return CompletableFuture.failedFuture(new TranslationException("Selected translation backend is unavailable."));
         }
@@ -106,10 +91,32 @@ public final class TranslationService {
             targetLanguage,
             candidateCount,
             config.openAiModel,
-            config.backend == TranslationBackend.OPENAI ? config.openAiApiKey : config.deepLApiKey,
+            backend == TranslationBackend.OPENAI ? config.openAiApiKey : config.deepLApiKey,
             config.deepLUseFreeApi
         );
         return provider.requestCandidates(request);
+    }
+
+    private Optional<Component> getConfigurationError(TranslationBackend backend) {
+        if (!this.providers.containsKey(backend)) {
+            return Optional.of(Component.translatable("chattranslate.preview.missing_backend"));
+        }
+
+        ClientTranslationConfig config = this.snapshot();
+        return switch (backend) {
+            case OPENAI -> {
+                if (StringUtil.isBlank(config.openAiApiKey)) {
+                    yield Optional.of(Component.translatable("chattranslate.preview.missing_openai_api_key"));
+                }
+                if (StringUtil.isBlank(config.openAiModel)) {
+                    yield Optional.of(Component.translatable("chattranslate.preview.missing_openai_model"));
+                }
+                yield Optional.empty();
+            }
+            case DEEPL -> StringUtil.isBlank(config.deepLApiKey)
+                ? Optional.of(Component.translatable("chattranslate.preview.missing_deepl_api_key"))
+                : Optional.empty();
+        };
     }
 
     private ClientTranslationConfig snapshot() {
