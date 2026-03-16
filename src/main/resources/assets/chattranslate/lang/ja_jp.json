@@ -24,6 +24,7 @@
   "chattranslate.tone.normal": "普通",
   "chattranslate.tone.casual": "カジュアル",
   "chattranslate.tone.formal": "フォーマル",
+  "chattranslate.tone.original": "原文",
   "chattranslate.preview.missing_backend": "選択した翻訳APIを利用できません。",
   "chattranslate.preview.missing_openai_api_key": "翻訳を使うには Mod Menu で OpenAI APIキーを設定してください。",
   "chattranslate.preview.missing_openai_model": "翻訳を使うには Mod Menu で OpenAIモデルを設定してください。",

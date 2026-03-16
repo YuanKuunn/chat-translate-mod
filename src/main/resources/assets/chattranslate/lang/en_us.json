@@ -24,6 +24,7 @@
   "chattranslate.tone.normal": "Normal",
   "chattranslate.tone.casual": "Casual",
   "chattranslate.tone.formal": "Formal",
+  "chattranslate.tone.original": "Original",
   "chattranslate.preview.missing_backend": "The selected translation API is unavailable.",
   "chattranslate.preview.missing_openai_api_key": "Set your OpenAI API key in Mod Menu to enable translation.",
   "chattranslate.preview.missing_openai_model": "Set an OpenAI model in Mod Menu to enable translation.",
