@@ -1,7 +1,6 @@
 package dev.yuankuunn.chattranslate.chat;
 
 import dev.yuankuunn.chattranslate.ChatTranslateClient;
-import dev.yuankuunn.chattranslate.translation.TranslationCandidate;
 import dev.yuankuunn.chattranslate.translation.TranslationException;
 import dev.yuankuunn.chattranslate.translation.TranslationResult;
 import java.util.ArrayList;
@@ -83,7 +82,7 @@ public final class ChatPreviewSession {
             return;
         }
 
-        this.selectedCandidateIndex = 0;
+        this.selectedCandidateIndex = 1;
         long requestId = this.requestIds.incrementAndGet();
         this.state = ChatPreviewState.loading(requestId, text);
         this.scheduledPreview = this.pipeline.previewExecutor().schedule(
@@ -111,23 +110,11 @@ public final class ChatPreviewSession {
         }
 
         if (this.state.status() == ChatPreviewState.Status.READY && text.equals(this.state.sourceText())) {
-            sendTranslatedMessage.accept(this.getSelectedCandidate(this.state).text());
+            sendTranslatedMessage.accept(this.getSelectedText(this.state, this.selectedCandidateIndex));
             return true;
         }
 
-        CompletableFuture<TranslationResult> requestFuture = this.currentRequest;
-        if (requestFuture == null || requestFuture.isDone() || !text.equals(this.currentRequestedInput)) {
-            long requestId = this.requestIds.incrementAndGet();
-            this.state = ChatPreviewState.loading(requestId, text);
-            requestFuture = this.startRequest(text, requestId);
-        }
-
-        requestFuture.thenAccept(result -> this.minecraft.execute(() -> sendTranslatedMessage.accept(this.getSelectedCandidate(result).text())))
-            .exceptionally(exception -> {
-                this.minecraft.execute(() -> this.notifyFailure(this.toUserMessage(exception)));
-                return null;
-            });
-        return true;
+        return false;
     }
 
     public synchronized boolean handleKeyPressed(int keyCode, Consumer<String> applySelectedText) {
@@ -264,7 +251,7 @@ public final class ChatPreviewSession {
         if (currentState.requestId() != requestId || !sourceText.equals(currentState.sourceText())) {
             return;
         }
-        this.selectedCandidateIndex = Math.clamp(this.selectedCandidateIndex, 0, result.candidates().size() - 1);
+        this.selectedCandidateIndex = Math.clamp(this.selectedCandidateIndex, 0, result.candidates().size());
         this.state = ChatPreviewState.ready(requestId, sourceText, result.candidates(), result.primaryText());
     }
 
@@ -277,24 +264,24 @@ public final class ChatPreviewSession {
     }
 
     private synchronized void applyCandidate(int candidateIndex, Consumer<String> applySelectedText) {
-        if (this.state.status() != ChatPreviewState.Status.READY || candidateIndex >= this.state.candidates().size()) {
+        if (this.state.status() != ChatPreviewState.Status.READY || candidateIndex >= this.candidateOptionCount(this.state)) {
             return;
         }
 
-        TranslationCandidate candidate = this.state.candidates().get(candidateIndex);
         this.selectedCandidateIndex = candidateIndex;
-        this.appliedCandidateText = candidate.text();
-        this.suppressedEditedText = candidate.text();
+        String selectedText = this.getSelectedText(this.state, candidateIndex);
+        this.appliedCandidateText = selectedText;
+        this.suppressedEditedText = selectedText;
         this.cancelScheduledPreview();
         this.state = ChatPreviewState.idle();
-        applySelectedText.accept(candidate.text());
+        applySelectedText.accept(selectedText);
     }
 
     private synchronized void moveSelection(int offset) {
-        if (this.state.status() != ChatPreviewState.Status.READY || this.state.candidates().isEmpty()) {
+        if (this.state.status() != ChatPreviewState.Status.READY || this.candidateOptionCount(this.state) == 0) {
             return;
         }
-        this.selectedCandidateIndex = Math.floorMod(this.selectedCandidateIndex + offset, this.state.candidates().size());
+        this.selectedCandidateIndex = Math.floorMod(this.selectedCandidateIndex + offset, this.candidateOptionCount(this.state));
     }
 
     private synchronized void cancelScheduledPreview() {
@@ -315,10 +302,10 @@ public final class ChatPreviewSession {
 
     private List<CandidateRenderEntry> buildCandidateEntries(Font font, ChatPreviewState state, int maxTextWidth) {
         List<CandidateRenderEntry> entries = new ArrayList<>();
-        for (int index = 0; index < state.candidates().size() && index < 3; index++) {
-            TranslationCandidate candidate = state.candidates().get(index);
-            String toneLabel = this.resolveToneLabel(candidate, index);
-            Component line = Component.literal((index + 1) + ". [" + toneLabel + "] " + candidate.text());
+        int translatedCount = Math.min(state.candidates().size(), 3);
+        for (int index = 0; index <= translatedCount; index++) {
+            String toneLabel = this.resolveToneLabel(index);
+            Component line = Component.literal((index + 1) + ". [" + toneLabel + "] " + this.getSelectedText(state, index));
             List<FormattedCharSequence> lines = font.split(line, maxTextWidth);
             entries.add(new CandidateRenderEntry(index, lines));
         }
@@ -333,24 +320,25 @@ public final class ChatPreviewSession {
         };
     }
 
-    private TranslationCandidate getSelectedCandidate(ChatPreviewState state) {
-        int index = Math.clamp(this.selectedCandidateIndex, 0, state.candidates().size() - 1);
-        return state.candidates().get(index);
+    private String getSelectedText(ChatPreviewState state, int candidateIndex) {
+        int index = Math.clamp(candidateIndex, 0, this.candidateOptionCount(state) - 1);
+        if (index == 0) {
+            return state.sourceText();
+        }
+        return state.candidates().get(index - 1).text();
     }
 
-    private TranslationCandidate getSelectedCandidate(TranslationResult result) {
-        int index = Math.clamp(this.selectedCandidateIndex, 0, result.candidates().size() - 1);
-        return result.candidates().get(index);
+    private int candidateOptionCount(ChatPreviewState state) {
+        return state.candidates().size() + 1;
     }
 
-    private String resolveToneLabel(TranslationCandidate candidate, int index) {
+    private String resolveToneLabel(int index) {
         return switch (index) {
-            case 0 -> Component.translatable("chattranslate.tone.normal").getString();
-            case 1 -> Component.translatable("chattranslate.tone.casual").getString();
-            case 2 -> Component.translatable("chattranslate.tone.formal").getString();
-            default -> candidate.toneLabel() != null && !candidate.toneLabel().isBlank()
-                ? candidate.toneLabel()
-                : Component.translatable("chattranslate.preview.extra_candidate", index + 1).getString();
+            case 0 -> Component.translatable("chattranslate.tone.original").getString();
+            case 1 -> Component.translatable("chattranslate.tone.normal").getString();
+            case 2 -> Component.translatable("chattranslate.tone.casual").getString();
+            case 3 -> Component.translatable("chattranslate.tone.formal").getString();
+            default -> Component.translatable("chattranslate.preview.extra_candidate", index + 1).getString();
         };
     }
 
