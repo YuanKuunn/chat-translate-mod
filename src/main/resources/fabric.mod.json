@@ -14,10 +14,10 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "dev.yuankuunn.chattranslate.ChatTranslateClient"
+      "com.yuakn.chattranslate.ChatTranslateClient"
     ],
     "modmenu": [
-      "dev.yuankuunn.chattranslate.config.ChatTranslateModMenu"
+      "com.yuakn.chattranslate.config.ChatTranslateModMenu"
     ]
   },
   "mixins": [

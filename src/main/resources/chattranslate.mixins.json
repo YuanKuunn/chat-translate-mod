@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "dev.yuankuunn.chattranslate.mixin.client",
+  "package": "com.yuakn.chattranslate.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ChatListenerMixin",

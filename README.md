@@ -98,7 +98,7 @@ Config is stored at:
 Output jar:
 
 ```text
-build/libs/chat-translate-mod-0.2.0.jar
+build/libs/chat-translate-mod-0.3.0.jar
 ```
 
 </details>
@@ -204,7 +204,7 @@ Mod Menu から以下を設定できます。
 出力 jar:
 
 ```text
-build/libs/chat-translate-mod-0.2.0.jar
+build/libs/chat-translate-mod-0.3.0.jar
 ```
 
 </details>
